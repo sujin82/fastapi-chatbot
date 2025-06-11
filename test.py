@@ -11,15 +11,17 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
     if not prompt.strip():
         raise Exception("질문 내용이 비어있거나 공백만 포함되어 있습니다.")
     
-    if len(prompt) > 500:
-        raise Exception("질문이 너무 깁니다. 4000자 이내로 입력해주세요.")
+    # 질문 길이 제한 (이전 컨텍스트에서 4000자에서 500자로 조정한 내용에 따라 유지)
+    if len(prompt) > 500: 
+        raise Exception("질문이 너무 깁니다. 500자 이내로 입력해주세요.") 
     
     # 3. 페이로드 준비
     payload = {
         "model": "gpt-4o-mini",
-        "messages": [ # 'messages' 필드를 다시 배열로 변경합니다.
-            {"role": "system", "content": "You are a helpful assistant."}, # 시스템 메시지 포함 (권장)
-            {"role": "user", "content": prompt.strip()} # 사용자 메시지
+        "messages": [
+            # --- 중요 변경 사항: 'system' 역할의 'content'를 빈 문자열이 아닌 기본 메시지로 설정 ---
+            {"role": "system", "content": "You are a helpful assistant."}, 
+            {"role": "user", "content": prompt.strip()}
         ]
     }
     
@@ -33,7 +35,7 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
     for attempt in range(max_retries):
         try:
             print(f"API 호출 시도 {attempt + 1}/{max_retries}")
-            # print("보내는 payload:", payload)
+            # print("보내는 payload:", payload) # 민감 정보가 포함될 수 있어 주석 처리 유지
             
             # 5. 타임아웃 설정 (30초)
             response = requests.post(
@@ -44,19 +46,20 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
             )
             
             print("응답코드:", response.status_code)
-            # print("응답본문:", response.text)
+            # print("응답본문:", response.text) # 긴 응답일 경우 로그를 지저분하게 만들 수 있어 주석 처리 유지
             
             # 6. 응답 상태 코드별 처리
             if response.status_code == 200:
                 try:
                     result = response.json()
-
+                    
+                    # --- 추가된 로직: 200 OK 응답 내부에 'error' 필드가 있는지 확인 ---
                     if "error" in result and "message" in result["error"]:
                         raise Exception(f"API 응답 오류: {result['error']['message']}")
                     
                     # 응답 구조 검증
                     if "choices" not in result:
-                        raise Exception("API 응답에 'choices' 필드가 없습니다.")
+                        raise Exception("API 응답에 'choices' 필드가 없습니다. (예상치 못한 응답 구조)")
                     
                     if len(result["choices"]) == 0:
                         raise Exception("API 응답의 'choices' 배열이 비어있습니다.")
@@ -75,18 +78,18 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
                     return content
                     
                 except json.JSONDecodeError:
-                    raise Exception("API 응답을 JSON으로 파싱할 수 없습니다.")
+                    raise Exception(f"API 응답을 JSON으로 파싱할 수 없습니다. 응답 내용: {response.text}")
             
             elif response.status_code == 400:
-                raise Exception("잘못된 요청입니다. 입력 데이터를 확인해주세요.")
+                raise Exception(f"잘못된 요청입니다. 입력 데이터를 확인해주세요. (서버 응답: {response.text})") 
             
             elif response.status_code == 403:
-                raise Exception("API 접근 권한이 없습니다.")
+                raise Exception(f"API 접근 권한이 없습니다. (서버 응답: {response.text})")
             
             elif response.status_code == 429:
                 # 요청 한도 초과 - 재시도 가능한 오류
                 if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt)  # 1초, 2초, 4초 순으로 대기
+                    wait_time = (2 ** attempt) 
                     print(f"요청 한도 초과. {wait_time}초 후 재시도...")
                     time.sleep(wait_time)
                     continue
@@ -101,10 +104,10 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
                     time.sleep(wait_time)
                     continue
                 else:
-                    raise Exception(f"API 서버에 오류가 발생했습니다. (상태코드: {response.status_code})")
+                    raise Exception(f"API 서버에 오류가 발생했습니다. (상태코드: {response.status_code}, 응답: {response.text})") 
             
             else:
-                raise Exception(f"API 오류가 발생했습니다. (상태코드: {response.status_code})")
+                raise Exception(f"예상치 못한 API 오류가 발생했습니다. (상태코드: {response.status_code}, 응답: {response.text})") 
         
         # 7. 네트워크 관련 예외 처리
         except requests.exceptions.Timeout:
@@ -113,25 +116,26 @@ def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
                 print(f"타임아웃 발생. 재시도 {attempt + 1}/{max_retries}")
                 time.sleep(2 ** attempt)
                 continue
-        
+            
         except requests.exceptions.ConnectionError:
             last_error = "네트워크 연결에 실패했습니다."
             if attempt < max_retries - 1:
                 print(f"연결 오류 발생. 재시도 {attempt + 1}/{max_retries}")
                 time.sleep(2 ** attempt)
                 continue
-        
+            
         except requests.exceptions.RequestException as e:
             last_error = f"네트워크 요청 중 오류가 발생했습니다: {str(e)}"
             if attempt < max_retries - 1:
                 print(f"요청 오류 발생. 재시도 {attempt + 1}/{max_retries}")
                 time.sleep(2 ** attempt)
                 continue
-        
+            
         except Exception as e:
             # 재시도 불가능한 오류는 즉시 발생시킴
             error_msg = str(e)
-            if any(keyword in error_msg for keyword in ["API 키", "잘못된 요청", "접근 권한", "비어있습니다", "파싱할 수 없습니다"]):
+            # 새롭게 추가된 '응답 오류' 키워드를 포함하여 특정 오류는 즉시 발생시킵니다.
+            if any(keyword in error_msg for keyword in ["API 키", "잘못된 요청", "접근 권한", "비어있습니다", "파싱할 수 없습니다", "질문이 너무 깁니다", "응답 오류"]): 
                 print("ask_chatgpt 에러:", e)
                 raise
             else:

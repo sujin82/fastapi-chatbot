@@ -3,28 +3,73 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>방구석 힐링 (챗봇)</title>
-    <link rel="stylesheet" href="style.css">
+    <title>챗봇</title>
+    <!-- 기본적인 스타일 (이전과 동일) -->
+    <style>
+        body { font-family: 'Inter', Arial, sans-serif; margin: 0; padding: 20px; background-color: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        #chat-container {
+            width: 90%; max-width: 600px; height: 70vh;
+            margin: 20px auto; border: 1px solid #e0e0e0; border-radius: 12px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1); background-color: white;
+            display: flex; flex-direction: column; overflow: hidden;
+            transition: all 0.3s ease-in-out;
+        }
+        #chat-messages {
+            flex-grow: 1; padding: 20px; overflow-y: auto;
+            border-bottom: 1px solid #f0f0f0;
+            background-color: #f9f9f9;
+        }
+        .message { margin-bottom: 15px; padding: 12px 18px; border-radius: 8px; max-width: 75%; }
+        .user-message { background-color: #e6f7ff; color: #333; text-align: right; margin-left: auto; border-bottom-right-radius: 2px; }
+        .bot-message { background-color: #e0f2f7; color: #333; text-align: left; margin-right: auto; border-bottom-left-radius: 2px; }
+        .message:last-child { margin-bottom: 0; }
+
+        #chat-input-area {
+            display: flex; padding: 15px; background-color: #ffffff; border-top: 1px solid #e0e0e0;
+        }
+        #user-input {
+            flex-grow: 1; padding: 12px; border: 1px solid #d0d0d0; border-radius: 8px;
+            margin-right: 10px; font-size: 16px; outline: none; transition: border-color 0.2s;
+        }
+        #user-input:focus { border-color: #007bff; }
+        #send-button {
+            padding: 12px 25px; background-color: #007bff; color: white;
+            border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
+            font-weight: bold; transition: background-color 0.2s, transform 0.1s;
+        }
+        #send-button:hover { background-color: #0056b3; transform: translateY(-1px); }
+        #send-button:active { transform: translateY(0); }
+
+        @media (max-width: 768px) {
+            #chat-container {
+                width: 95%; height: 85vh;
+            }
+            #chat-messages {
+                padding: 15px;
+            }
+            .message {
+                padding: 10px 15px;
+                max-width: 85%;
+            }
+            #chat-input-area {
+                padding: 10px;
+            }
+            #user-input, #send-button {
+                font-size: 14px;
+                padding: 10px 15px;
+            }
+        }
+    </style>
 </head>
 <body>
-    <div class="header">
-        <h1>방구석 힐링 (챗봇)</h1>
-        <div><a href="">로그인</a></div>
-    </div>
-
-    <div class="main">
-        <h2>미래 시나리오를 함께 그려주는 힐링 챗봇</h2>
-        <div class="chat-box">
-            <!-- 대화내용 기술 -->
-        </div>
-
-        <div class="chat">
-            <textarea id="user-input" rows="5" cols="30" placeholder="챗봇에게 질문해보세요"></textarea>
-            <button id="send-btn" type="button">제출</button>
+    <div id="chat-container">
+        <div id="chat-messages"></div>
+        <div id="chat-input-area">
+            <input type="text" id="user-input" placeholder="메시지를 입력하세요...">
+            <button id="send-button">전송</button>
         </div>
     </div>
-
-    
+    <!-- axios CDN을 app.js 스크립트보다 먼저 추가합니다. -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="app.js"></script>
 </body>
