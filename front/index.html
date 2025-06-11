@@ -3,13 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>방구석 힐링 챗봇</title>
+    <title>방구석 힐링 (챗봇)</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>방구석 힐링 챗봇</h1>
-    <script src="app.js">
-        
-    </script>
+    <div class="header">
+        <h1>방구석 힐링 (챗봇)</h1>
+        <div><a href="">로그인</a></div>
+    </div>
+
+    <div class="main">
+        <h2>미래 시나리오를 함께 그려주는 힐링 챗봇</h2>
+        <div class="chat-box">
+            <!-- 대화내용 기술 -->
+        </div>
+
+        <div class="chat">
+            <textarea id="user-input" rows="5" cols="30" placeholder="챗봇에게 질문해보세요"></textarea>
+            <button id="send-btn" type="button">제출</button>
+        </div>
+    </div>
+
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>
