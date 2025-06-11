@@ -1,151 +1,96 @@
-import requests
-import time
+import httpx
+from typing import Optional, Literal, List
+import asyncio
 import json
+import uuid
+from pydantic import BaseModel, Field
+
+# ChatMessage 스키마는 main.py와 동일하게 유지
+class ChatMessage(BaseModel):
+    """ 개별 대화 메시지를 나타내는 스키마.
+    각 메시지에 사용자 ID를 직접 연결 """
+    messageId: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    userId: str
+    senderType: Literal["user", "ai"]
+    content: str
+    # timestamp: datetime # timestamp는 현재 코드에서 사용되지 않으므로 주석 처리하거나 필요시 사용
 
 API_URL = "https://dev.wenivops.co.kr/services/openai-api"
 
-def ask_chatgpt(prompt: str, max_retries: int = 3) -> str:
-    # 1. API 키 확인
+async def ask_chatgpt_async(messages: List[ChatMessage], max_retries: int = 3) -> str:
+    if not messages or not isinstance(messages, list):
+        raise Exception("messages는 비어있거나 올바르지 않은 형식입니다.")
     
-    # 2. 입력 검증
-    if not prompt.strip():
-        raise Exception("질문 내용이 비어있거나 공백만 포함되어 있습니다.")
+    # ChatMessage 객체를 OpenAI API가 요구하는 형식의 딕셔너리 리스트로 변환
+    formatted_messages = []
+    for msg in messages:
+        role_mapping = {
+            "user": "user",
+            "ai": "assistant"
+        }
+        formatted_messages.append({
+            "role": role_mapping.get(msg.senderType, "user"),
+            "content": msg.content
+        })
     
-    if len(prompt) > 500:
-        raise Exception("질문이 너무 깁니다. 4000자 이내로 입력해주세요.")
-    
-    # 3. 페이로드 준비
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages": [ # 'messages' 필드를 다시 배열로 변경합니다.
-            {"role": "system", "content": "You are a helpful assistant."}, # 시스템 메시지 포함 (권장)
-            {"role": "user", "content": prompt.strip()} # 사용자 메시지
-        ]
-    }
-    
+    # --- 변경된 부분 시작 ---
+    # 프록시 서버가 'messages' 배열 자체를 최상위 페이로드로 기대하는 경우를 시도합니다.
+    # 이전에는 {"model": "...", "messages": [...]} 형태였으나,
+    # 프록시 서버의 오류 메시지가 'messages' 필드의 타입 문제임을 명확히 지적하므로
+    # 'formatted_messages' (리스트) 그 자체를 페이로드로 보냅니다.
+    # 'model' 정보가 필요하다면, 해당 프록시 API의 문서를 확인하여
+    # 'model'을 쿼리 파라미터나 다른 방식으로 전달해야 할 수 있습니다.
+    payload_to_send = formatted_messages
+    # --- 변경된 부분 끝 ---
+
     headers = {
         "Content-Type": "application/json"
     }
-    
-    # 4. 재시도 로직 (일시적 오류 대응)
-    last_error = None
-    
-    for attempt in range(max_retries):
-        try:
-            print(f"API 호출 시도 {attempt + 1}/{max_retries}")
-            # print("보내는 payload:", payload)
-            
-            # 5. 타임아웃 설정 (30초)
-            response = requests.post(
-                API_URL, 
-                json=payload, 
-                headers=headers,
-                timeout=30
-            )
-            
-            print("응답코드:", response.status_code)
-            # print("응답본문:", response.text)
-            
-            # 6. 응답 상태 코드별 처리
-            if response.status_code == 200:
-                try:
-                    result = response.json()
 
-                    if "error" in result and "message" in result["error"]:
-                        raise Exception(f"API 응답 오류: {result['error']['message']}")
-                    
-                    # 응답 구조 검증
+    print("🚀 보낼 payload:", json.dumps(payload_to_send, indent=2, ensure_ascii=False))
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        for attempt in range(max_retries):
+            try:
+                response = await client.post(API_URL, json=payload_to_send, headers=headers)
+                print("🔄 응답 상태 코드:", response.status_code)
+                print("📦 응답 본문:", response.text)
+
+                if response.status_code == 200:
+                    result = response.json()
+                    # 이 오류는 이제 발생하지 않아야 합니다. (프록시가 유효한 응답을 보내면)
                     if "choices" not in result:
-                        raise Exception("API 응답에 'choices' 필드가 없습니다.")
+                        raise Exception(f"API 응답에 choices가 없습니다: {result}")
                     
-                    if len(result["choices"]) == 0:
-                        raise Exception("API 응답의 'choices' 배열이 비어있습니다.")
-                    
-                    if "message" not in result["choices"][0]:
-                        raise Exception("API 응답에 'message' 필드가 없습니다.")
-                    
-                    if "content" not in result["choices"][0]["message"]:
-                        raise Exception("API 응답에 'content' 필드가 없습니다.")
-                    
-                    content = result["choices"][0]["message"]["content"]
-                    
-                    if not content:
-                        raise Exception("API 응답 내용이 비어있습니다.")
-                    
-                    return content
-                    
-                except json.JSONDecodeError:
-                    raise Exception("API 응답을 JSON으로 파싱할 수 없습니다.")
-            
-            elif response.status_code == 400:
-                raise Exception("잘못된 요청입니다. 입력 데이터를 확인해주세요.")
-            
-            elif response.status_code == 403:
-                raise Exception("API 접근 권한이 없습니다.")
-            
-            elif response.status_code == 429:
-                # 요청 한도 초과 - 재시도 가능한 오류
-                if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt)  # 1초, 2초, 4초 순으로 대기
-                    print(f"요청 한도 초과. {wait_time}초 후 재시도...")
-                    time.sleep(wait_time)
+                    return result["choices"][0]["message"]["content"]
+                elif response.status_code == 429:
+                    print(f"재시도 {attempt + 1}/{max_retries}: 429 Rate Limit. 대기 중...")
+                    await asyncio.sleep(2 ** attempt)
                     continue
                 else:
-                    raise Exception("요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
-            
-            elif response.status_code >= 500:
-                # 서버 오류 - 재시도 가능한 오류
-                if attempt < max_retries - 1:
-                    wait_time = (2 ** attempt)
-                    print(f"서버 오류 발생. {wait_time}초 후 재시도...")
-                    time.sleep(wait_time)
-                    continue
-                else:
-                    raise Exception(f"API 서버에 오류가 발생했습니다. (상태코드: {response.status_code})")
-            
-            else:
-                raise Exception(f"API 오류가 발생했습니다. (상태코드: {response.status_code})")
+                    raise Exception(f"API 오류: {response.status_code} - {response.text}")
+            except httpx.RequestError as exc:
+                print(f"재시도 {attempt + 1}/{max_retries}: 요청 중 오류 발생 - {exc}. 대기 중...")
+                if attempt == max_retries - 1:
+                    raise
+                await asyncio.sleep(2 ** attempt)
+            except Exception as e:
+                print(f"재시도 {attempt + 1}/{max_retries}: 예상치 못한 오류 발생 - {e}. 대기 중...")
+                if attempt == max_retries - 1:
+                    raise
+                await asyncio.sleep(2 ** attempt)
+
+# 사용 예시 (테스트용 - 실제 작동은 main.py를 통해 이루어집니다)
+async def main():
+    try:
+        messages_to_send = [
+            ChatMessage(userId="user123", senderType="user", content="지구는 왜 파란가요?")
+        ]
         
-        # 7. 네트워크 관련 예외 처리
-        except requests.exceptions.Timeout:
-            last_error = "요청 시간이 초과되었습니다."
-            if attempt < max_retries - 1:
-                print(f"타임아웃 발생. 재시도 {attempt + 1}/{max_retries}")
-                time.sleep(2 ** attempt)
-                continue
-        
-        except requests.exceptions.ConnectionError:
-            last_error = "네트워크 연결에 실패했습니다."
-            if attempt < max_retries - 1:
-                print(f"연결 오류 발생. 재시도 {attempt + 1}/{max_retries}")
-                time.sleep(2 ** attempt)
-                continue
-        
-        except requests.exceptions.RequestException as e:
-            last_error = f"네트워크 요청 중 오류가 발생했습니다: {str(e)}"
-            if attempt < max_retries - 1:
-                print(f"요청 오류 발생. 재시도 {attempt + 1}/{max_retries}")
-                time.sleep(2 ** attempt)
-                continue
-        
-        except Exception as e:
-            # 재시도 불가능한 오류는 즉시 발생시킴
-            error_msg = str(e)
-            if any(keyword in error_msg for keyword in ["API 키", "잘못된 요청", "접근 권한", "비어있습니다", "파싱할 수 없습니다"]):
-                print("ask_chatgpt 에러:", e)
-                raise
-            else:
-                # 예상치 못한 오류는 재시도
-                last_error = str(e)
-                if attempt < max_retries - 1:
-                    print(f"예상치 못한 오류 발생. 재시도 {attempt + 1}/{max_retries}: {e}")
-                    time.sleep(2 ** attempt)
-                    continue
-    
-    # 8. 모든 재시도 실패 시
-    final_error = f"최대 재시도 횟수({max_retries})를 초과했습니다."
-    if last_error:
-        final_error += f" 마지막 오류: {last_error}"
-    
-    print("ask_chatgpt 에러:", final_error)
-    raise Exception(final_error)
+        response_content = await ask_chatgpt_async(messages_to_send)
+        print("\n✨ 최종 응답:", response_content)
+    except Exception as e:
+        print(f"\n❌ 오류 발생: {e}")
+
+if __name__ == "__main__":
+    asyncio.run(main())
