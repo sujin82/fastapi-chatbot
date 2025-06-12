@@ -1,11 +1,25 @@
 import hashlib
 import uuid
 from typing import Optional
+from models import User
 
-# 📊 간단한 "가짜 데이터베이스" (메모리에 저장)
-users_db = {}           # 사용자 정보 저장소
+
+users_db = {  # 사용자 정보 저장소
+    "user1": User(  # ⭐ User 모델의 인스턴스를 생성하여 저장합니다.
+        id=1,
+        username="user1",
+        email="user1@example.com",
+        hashed_password=hashlib.sha256("pass1111".encode()).hexdigest()
+    ),
+    "user2": User(  # ⭐ User 모델의 인스턴스를 생성하여 저장합니다.
+        id=2,
+        username="user2",
+        email="user2@example.com",
+        hashed_password=hashlib.sha256("pass2222".encode()).hexdigest()
+    )
+}
 user_sessions = {}      # 로그인 세션 저장소
-next_user_id = 1        # 다음에 만들 사용자의 ID 번호
+next_user_id = 3        # 다음에 만들 사용자의 ID 번호
 
 def hash_password(password: str) -> str:
     """
