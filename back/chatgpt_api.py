@@ -1,19 +1,8 @@
 import httpx
-from typing import Optional, Literal, List
+from typing import List
 import asyncio
-import json
-import uuid
-from pydantic import BaseModel, Field
+from models import ChatMessage
 
-# ChatMessage 스키마는 main.py와 동일하게 유지
-class ChatMessage(BaseModel):
-    """ 개별 대화 메시지를 나타내는 스키마.
-    각 메시지에 사용자 ID를 직접 연결 """
-    messageId: str = Field(default_factory=lambda: str(uuid.uuid4()))
-    userId: str
-    senderType: Literal["user", "ai"]
-    content: str
-    # timestamp: datetime # timestamp는 현재 코드에서 사용되지 않으므로 주석 처리하거나 필요시 사용
 
 API_URL = "https://dev.wenivops.co.kr/services/openai-api"
 
