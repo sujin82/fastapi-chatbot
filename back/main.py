@@ -23,9 +23,6 @@ app.add_middleware(
 
 messages_db: Dict[str, ChatMessage] = {}
 
-# @app.get("/")
-# async def read_root():
-#     return {"message": "Hello, FastAPI! This is a minimal test."}
 
 @app.get("/")
 async def read_index():

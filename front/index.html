@@ -4,36 +4,48 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>챗봇</title>
-    <link rel="stylesheet" href="/static/styles/main.css">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="./static/styles/main.css">
 </head>
-<body>
-    <!-- 새로운 메인 헤더 -->
-    <header id="main-header">
-        <h1>챗봇</h1>
-        <div id="auth-links">
-            <a href="/login">로그인</a>
-            <a href="/register">회원가입</a>
+<body class="bg-gray-100 antialiased">
+    <!-- 헤더 -->
+    <header class="bg-white shadow-sm py-4 px-6 flex justify-between items-center border-b border-gray-200">
+        <h1 class="text-2xl font-bold text-gray-800">
+            <a href="/" class="hover:text-blue-600 transition-colors duration-200">챗봇</a>
+        </h1>
+        <div class="space-x-4">
+            <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">로그인</a>
+            <a href="/register" class="text-blue-600 hover:text-blue-800 font-medium">회원가입</a>
         </div>
     </header>
 
-    <!-- 챗봇 컨테이너를 담는 메인 컨텐츠 영역 -->
-    <div id="main-content">
-        <div id="chat-container">
-            <div id="chat-messages"></div>
-            <!-- 로딩 인디케이터 추가 -->
-            <div id="loading-indicator">
+    <!-- 메인 콘텐츠 -->
+    <div class="flex flex-grow justify-center items-center py-8 px-4 sm:px-6 lg:px-8">
+        <div class="w-full max-w-2xl h-full flex flex-col bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden">
+            <!-- 채팅 메시지 영역 -->
+            <div id="chat-messages" class="flex-grow p-4 overflow-y-auto space-y-4 max-h-[500px] min-h-[350px]">
+                <!-- 메시지가 여기 동적으로 삽입됨 -->
+            </div>
+
+            <!-- 로딩 인디케이터 -->
+            <div id="loading-indicator" class="h-10 bg-blue-600 text-white text-center flex items-center justify-center rounded-none transition-all duration-300 opacity-0 invisible">
                 <span class="spinner"></span> 챗봇이 응답을 준비 중입니다...
             </div>
-            <form id="chat-form">
-                <div id="chat-input-area">
-                    <input type="text" id="user-input" placeholder="메시지를 입력하세요" required>
-                    <button type="submit" id="send-button">전송</button>
-                </div>
+
+            <!-- 입력 폼 -->
+            <form id="chat-form" class="p-4 border-t border-gray-200 bg-gray-50 flex items-center gap-2">
+                <input type="text" id="user-input" placeholder="메시지를 입력하세요" required
+                    class="flex-grow px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 placeholder-gray-400">
+                <button type="submit"
+                    class="bg-blue-600 text-white py-2 px-4 rounded-lg font-semibold hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 transition">
+                    전송
+                </button>
             </form>
         </div>
     </div>
 
+    <!-- 스크립트 (JS 로직 삽입) -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/static/scripts/main.js"></script>
+    <script src="./static/scripts/main.js"></script>
 </body>
 </html>
