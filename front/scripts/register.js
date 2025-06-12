@@ -46,8 +46,6 @@ document.addEventListener('DOMContentLoaded', () => {
         fields.forEach(field => showFieldError(field, ''));
     }
 
-    // ★ 삭제: 기존 showSuccessMessage 함수는 더 이상 필요 없습니다.
-
     // 비밀번호 확인 유효성 검사 (기존과 동일)
     function validatePasswords() {
         const password = passwordInput.value;

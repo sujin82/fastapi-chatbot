@@ -1,3 +1,4 @@
+import json
 from fastapi import FastAPI, HTTPException, Cookie
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -22,6 +23,20 @@ app.add_middleware(
 )
 
 messages_db: Dict[str, ChatMessage] = {}
+
+# --- [새로운 부분] 장기 기억: 채팅 기록을 파일에 영구 저장 ---
+CHAT_HISTORY_FILE = "chat_history.json"
+
+def load_chat_history() -> Dict[str, list]:
+    try:
+        with open(CHAT_HISTORY_FILE, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {}
+
+def save_chat_history(history: Dict[str, list]):
+    with open(CHAT_HISTORY_FILE, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=4)
 
 
 @app.get("/")
@@ -154,10 +169,31 @@ async def 로그아웃(session_id: Optional[str] = Cookie(None)):
 
 
 
+@app.get("/chat/history", summary="내 채팅 기록 보기")
+async def get_my_chat_history(session_id: Optional[str] = Cookie(None)):
+    """
+    📜 현재 로그인한 사용자의 전체 채팅 기록을 반환합니다.
+    """
+    user = get_current_user(session_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="🚫 인증이 필요합니다.")
 
+    history = load_chat_history()
+    # auth.py에서 사용하는 user.id의 타입과 맞추기 위해 str()을 사용합니다.
+    # ChatRequest에서 오는 userId가 문자열이므로 통일성을 위해 문자열로 조회합니다.
+    user_history = history.get(str(user.id), []) 
+
+    return JSONResponse(content={"history": user_history})
+
+
+# --- 채팅 및 기록 저장 엔드포인트 ---
 @app.post("/chat", response_model=ChatMessage)
 async def send_message(request: ChatRequest):
-    user_id = request.userId or "guest"
+    # userId가 있어야 기록을 남길 수 있습니다.
+    user_id = request.userId
+    if not user_id:
+        raise HTTPException(status_code=400, detail="userId가 필요합니다.")
+        
     user_message_content = request.content
 
     user_message = ChatMessage(
@@ -165,8 +201,7 @@ async def send_message(request: ChatRequest):
         senderType="user",
         content=user_message_content
     )
-    messages_db[user_message.messageId] = user_message
-
+    
     try:
         bot_response_content = await ask_chatgpt_async(user_id=user_id, prompt_content=user_message_content)
     except Exception as e:
@@ -177,5 +212,15 @@ async def send_message(request: ChatRequest):
         senderType="ai",
         content=bot_response_content
     )
-    messages_db[bot_message.messageId] = bot_message
+
+    # 대화 내용을 파일에 저장
+    history = load_chat_history()
+    user_history = history.get(user_id, [])
+    user_history.append(user_message.dict())
+    user_history.append(bot_message.dict())
+    history[user_id] = user_history
+    save_chat_history(history)
+
     return bot_message
+
+

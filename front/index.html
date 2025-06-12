@@ -13,13 +13,9 @@
         <h1 class="text-2xl font-bold text-gray-800">
             <a href="/" class="hover:text-blue-600 transition-colors duration-200">챗봇</a>
         </h1>
-        <div id="auth-links-logged-out" class="space-x-4">
-            <a href="/login" class="text-blue-600 hover:text-blue-800 font-medium">로그인</a>
-            <a href="/register" class="text-blue-600 hover:text-blue-800 font-medium">회원가입</a>
-        </div>
 
         <div id="auth-links-logged-in" class="space-x-4 hidden">
-            <span id="username-display" class="text-gray-700 font-medium mr-2"></span>
+            <button id="showHistoryBtn" class="text-gray-700 font-medium mr-2">히스토리 불러오기</button>
             <a href="#" id="logout-button" class="text-blue-600 hover:text-blue-800 font-medium">로그아웃</a>
         </div>
     </header>
@@ -49,20 +45,19 @@
         </div>
     </div>
 
-    <div id="login-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+    <div id="login-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm w-full text-center relative"> 
-            <!-- <button id="close-login-modal" 
-                    class="absolute top-2 right-2 bg-gray-200 hover:bg-gray-300 text-gray-700 w-10 h-10 rounded-full flex items-center justify-center text-lg font-bold">
-                X
-            </button> -->
             <p class="text-xl font-semibold text-gray-800 mb-4">
                 안녕하세요! 🤖
             </p>
             <p class="text-gray-600 mb-6">
-                저와 대화하려면 로그인이 필요해요. <br> 함께 이야기를 나눠봐요!
+                저와 대화하려면 로그인이 필요해요. <br> 계정이 없다면 회원가입부터 해주세요.
             </p>
             <a href="/login" class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors duration-200">
                 로그인
+            </a>
+            <a href="/register" class="inline-block bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors duration-200">
+                회원가입
             </a>
         </div>
     </div>

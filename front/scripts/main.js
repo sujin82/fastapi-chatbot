@@ -4,12 +4,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     const chatMessages = document.getElementById('chat-messages');
     const loadingIndicator = document.getElementById('loading-indicator');
 
-    // ★★★ 팝업 창 관련 DOM 요소 가져오기 (추가) ★★★
     const loginModal = document.getElementById('login-modal');
     const closeLoginModalButton = document.getElementById('close-login-modal');
 
-    // ★★★ 1. 메시지 박스 관련 코드 (main.js에서 showMessage를 사용한다면 필요) ★★★
+    const showHistoryBtn = document.getElementById('showHistoryBtn'); 
+    
+    const clearHistoryButton = document.getElementById('clear-history-button');
+
     const messageBox = document.getElementById('messageBox'); 
+
+    // null 체크 추가
+    if (!showHistoryBtn) {
+        console.warn("showHistoryBtn 요소를 찾을 수 없습니다. HTML에서 id='showHistoryBtn' 요소가 존재하는지 확인해주세요.");
+    }
+
     function showMessage(message, type) {
         if (!messageBox) {
             console.warn("messageBox element not found. Message cannot be displayed.");
@@ -22,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 messageBox.className = 'message-box';
             }, 300);
-        }, 2000);
+        }, 3000);
     }
 
     function appendMessage(senderType, content) {
@@ -44,12 +52,99 @@ document.addEventListener('DOMContentLoaded', async () => {
         chatMessages.scrollTop = chatMessages.scrollHeight;
     }
 
+    // ★★★ 새로운 함수: 채팅 기록의 존재 여부만 확인 ★★★
+    async function checkIfHistoryExists() {
+        try {
+            const response = await fetch('/chat/history');
+            if (response.ok) {
+                const data = await response.json();
+                return (data.history && data.history.length > 0);
+            }
+            return false;
+        } catch (error) {
+            console.error('채팅 기록 존재 여부 확인 중 오류:', error);
+            return false;
+        }
+    }
+
+    // ★★★ 채팅 기록 로드 함수 (버튼 클릭 시 화면에 출력) ★★★
+    // 이 함수는 기록 유무에 따라 showHistoryBtn의 가시성을 조절합니다.
+    async function loadChatHistory(clearCurrentChat = false) { 
+        let hasHistory = false; 
+        try {
+            const response = await fetch('/chat/history');
+            if (response.ok) {
+                const data = await response.json();
+                const messages = data.history || []; 
+                
+                if (clearCurrentChat) { // 버튼 클릭 시에만 기존 메시지 초기화
+                    chatMessages.innerHTML = '';
+                }
+                
+                if (messages.length > 0) {
+                    hasHistory = true; 
+                    messages.forEach(message => {
+                        appendMessage(message.senderType, message.content);
+                    });
+                    console.log(`${messages.length}개의 채팅 기록을 복원했습니다.`);
+                    showMessage(`${messages.length}개의 이전 대화를 복원했습니다.`, 'info'); 
+                } else {
+                    console.log('이전 채팅 기록이 없습니다.');
+                    showMessage('이전 채팅 기록이 없습니다.', 'info'); 
+                }
+                
+            } else if (response.status === 401) {
+                console.log('채팅 기록을 불러오려면 로그인이 필요합니다.');
+                showMessage('로그인이 필요합니다. 다시 로그인해주세요.', 'error'); 
+            } else {
+                console.error('채팅 기록을 불러올 수 없습니다:', response.status);
+                showMessage('채팅 기록을 불러오는 데 실패했습니다.', 'error');
+            }
+        } catch (error) {
+            console.error('채팅 기록 로드 중 오류:', error);
+            showMessage('채팅 기록 로드 중 네트워크 오류가 발생했습니다.', 'error');
+        } finally {
+            // ★★★ 변경: 히스토리 불러오기 버튼 클릭으로 로드했을 경우 버튼 숨김 ★★★
+            if (showHistoryBtn) {
+                if (clearCurrentChat) { // '히스토리 불러오기' 버튼 클릭으로 호출된 경우
+                    showHistoryBtn.classList.add('hidden'); // 무조건 숨깁니다.
+                } else { // 로그인 시 초기 확인 등 다른 경우
+                    if (hasHistory) { // 기록이 존재하면 보이게 유지
+                        showHistoryBtn.classList.remove('hidden'); 
+                    } else { // 기록이 없으면 숨김
+                        showHistoryBtn.classList.add('hidden'); 
+                    }
+                }
+            }
+        }
+        return hasHistory; 
+    }
+
+    async function clearChatHistory() {
+        try {
+            const response = await fetch('/chat/history', { method: 'DELETE' });
+            if (response.ok) {
+                chatMessages.innerHTML = ''; 
+                showMessage('채팅 기록이 성공적으로 삭제되었습니다.', 'success');
+                if (showHistoryBtn) {
+                    showHistoryBtn.classList.add('hidden'); 
+                }
+                appendMessage('ai', `새로운 대화를 시작해주세요, ${currentUsername}님.`);
+            } else {
+                const errorData = await response.json();
+                showMessage(errorData.detail || '채팅 기록 삭제에 실패했습니다.', 'error');
+            }
+        } catch (error) {
+            console.error('채팅 기록 삭제 중 오류:', error);
+            showMessage('채팅 기록 삭제 중 오류가 발생했습니다.', 'error');
+        }
+    }
+
     const loggedOutLinks = document.getElementById('auth-links-logged-out');
     const loggedInLinks = document.getElementById('auth-links-logged-in');
-    const usernameDisplay = document.getElementById('username-display');
     const logoutButton = document.getElementById('logout-button');
 
-    let currentUserId = 'guest';
+    let currentUserId = 'guest'; 
     let currentUsername = '손님';
 
     async function checkLoginStatusAndUpdateUI() {
@@ -57,87 +152,141 @@ document.addEventListener('DOMContentLoaded', async () => {
             const response = await fetch('/me');
             if (response.ok) {
                 const userData = await response.json();
-                currentUserId = userData.username;
+                currentUserId = String(userData.id); 
                 currentUsername = userData.username;
 
-                usernameDisplay.textContent = `${currentUsername}님`;
-                loggedInLinks.classList.remove('hidden');
-                loggedOutLinks.classList.add('hidden');
+                if (loggedInLinks) loggedInLinks.classList.remove('hidden');
+                if (loggedOutLinks) loggedOutLinks.classList.add('hidden');
 
-                // 로그인 시 팝업 창 숨기기 (혹시 모를 경우를 대비)
-                loginModal.classList.add('hidden');
+                if (loginModal) loginModal.classList.add('hidden');
 
-                appendMessage('bot', `어서오세요, ${currentUsername}님. 무엇을 도와드릴까요?`);
+                // ★★★ 변경: 로그인 시 히스토리 로드 대신 존재 여부만 확인 ★★★
+                const historyExists = await checkIfHistoryExists(); 
+                
+                // 히스토리가 있을 때만 버튼 활성화
+                if (showHistoryBtn) {
+                    if (historyExists) {
+                        showHistoryBtn.classList.remove('hidden'); // 기록이 있으면 보이게
+                    } else {
+                        showHistoryBtn.classList.add('hidden'); // 기록이 없으면 숨기게
+                    }
+                }
+
+                // 채팅 메시지 영역이 비어있을 때만 웰컴 메시지 표시
+                if (chatMessages && chatMessages.children.length === 0) { 
+                    appendMessage('ai', `어서오세요, ${currentUsername}님. 무엇을 도와드릴까요?`);
+                }
 
             } else {
-                console.log("로그인되지 않은 사용자입니다. guest 모드로 진행합니다.");
                 
-                loggedInLinks.classList.add('hidden');
-                loggedOutLinks.classList.remove('hidden');
+                if (loggedInLinks) loggedInLinks.classList.add('hidden');
+                if (loggedOutLinks) loggedOutLinks.classList.remove('hidden');
 
-                // ★★★ 로그인하지 않은 경우 초기 팝업 창 표시 (변경) ★★★
-                // chatMessages.innerHTML = ''; // 기존 메시지 초기화 (선택 사항)
-                loginModal.classList.remove('hidden'); // 팝업 창 표시
+                if (loginModal) loginModal.classList.remove('hidden');
+
+                // 로그인되지 않은 상태에서는 '히스토리 불러오기' 버튼 숨김
+                if (showHistoryBtn) {
+                    showHistoryBtn.classList.add('hidden');
+                }
             }
         } catch (error) {
             console.error('로그인 상태 확인 중 오류 발생:', error);
-            loggedInLinks.classList.add('hidden');
-            loggedOutLinks.classList.remove('hidden');
+            if (loggedInLinks) loggedInLinks.classList.add('hidden');
+            if (loggedOutLinks) loggedOutLinks.classList.remove('hidden');
             
-            // 네트워크 오류 시 팝업 창 표시 (변경)
-            loginModal.classList.remove('hidden');
-            // appendMessage('bot', '죄송합니다. 네트워크 오류로 인해 로그인 상태를 확인할 수 없습니다. (guest 모드)'); // 이제 팝업이 메시지를 대체
+            if (loginModal) loginModal.classList.remove('hidden');
             showMessage('네트워크 오류로 로그인 상태를 확인할 수 없습니다. guest 모드로 진행합니다.', 'error');
+            // 오류 발생 시에도 '히스토리 불러오기' 버튼 숨김
+            if (showHistoryBtn) {
+                showHistoryBtn.classList.add('hidden');
+            }
         }
     }
 
     function showLoadingIndicator() {
-        loadingIndicator.classList.remove('opacity-0', 'invisible');
-        loadingIndicator.classList.add('opacity-100', 'visible');
-        chatMessages.scrollTop = chatMessages.scrollHeight;
+        if (loadingIndicator) {
+            loadingIndicator.classList.remove('opacity-0', 'invisible');
+            loadingIndicator.classList.add('opacity-100', 'visible');
+        }
+        if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+        }
     }
 
     function hideLoadingIndicator() {
-        loadingIndicator.classList.add('opacity-0', 'invisible');
-        loadingIndicator.classList.remove('opacity-100', 'visible');
+        if (loadingIndicator) {
+            loadingIndicator.classList.add('opacity-0', 'invisible');
+            loadingIndicator.classList.remove('opacity-100', 'visible');
+        }
     }
 
-    // ★★★ input 비활성화/활성화 함수 추가 ★★★
     function disableInput() {
-        userInput.disabled = true;
-        userInput.placeholder = '응답을 기다리는 중...';
+        if (userInput) {
+            userInput.disabled = true;
+            userInput.placeholder = '응답을 기다리는 중...';
+        }
     }
 
     function enableInput() {
-        userInput.disabled = false;
-        userInput.placeholder = '메시지를 입력하세요...'; // 원래 placeholder로 복원
-        userInput.focus(); // 입력창에 포커스 설정
+        if (userInput) {
+            userInput.disabled = false;
+            userInput.placeholder = '메시지를 입력하세요...';
+            userInput.focus();
+        }
     }
 
     async function sendMessage(content) {
-        // ★★★ 로그인하지 않은 상태에서 대화 시도 시 팝업 띄우기 (변경) ★★★
         if (currentUserId === 'guest') {
-            loginModal.classList.remove('hidden'); // 팝업 창 표시
-            // showMessage('챗봇과 대화하려면 로그인이 필요합니다.', 'info'); // 이 메시지 대신 팝업이 뜸
-            userInput.value = ''; // 입력된 내용 지우기
-            return; // 메시지 전송 중단
+            if (loginModal) loginModal.classList.remove('hidden');
+            if (userInput) userInput.value = '';
+            return;
         }
 
-        // ★★★ 메시지 전송 시작 - input 비활성화 ★★★
         disableInput();
-        
         appendMessage('user', content);
         showLoadingIndicator();
 
         try {
             const response = await axios.post('http://127.0.0.1:8000/chat/', {
-                userId: currentUserId,
+                userId: currentUserId, 
                 content: content
             });
 
             hideLoadingIndicator();
-            const botMessage = response.data;
-            appendMessage('bot', botMessage.content);
+            
+            const botResponseData = response.data; 
+
+            console.log('서버로부터 받은 botResponseData:', botResponseData);
+            console.log('botResponseData의 타입:', typeof botResponseData);
+            console.log('botResponseData.content 속성:', botResponseData ? botResponseData.content : 'N/A');
+
+            let actualBotContent = '챗봇 응답을 처리할 수 없습니다.'; 
+
+            if (botResponseData && typeof botResponseData === 'object' && botResponseData.content) {
+                actualBotContent = botResponseData.content;
+            } else if (typeof botResponseData === 'string') {
+                try {
+                    const parsed = JSON.parse(botResponseData);
+                    if (parsed && typeof parsed === 'object' && parsed.content) {
+                        actualBotContent = parsed.content; 
+                    } else {
+                        actualBotContent = botResponseData; 
+                    }
+                } catch (e) {
+                    actualBotContent = botResponseData; 
+                }
+            } else {
+                actualBotContent = '챗봇 응답 형식 오류.';
+            }
+
+            appendMessage('ai', actualBotContent);
+            
+            // ★★★ 새 메시지 전송 후 '히스토리 불러오기' 버튼 활성화 ★★★
+            // 메시지를 전송했으므로 이제 기록이 있을 수 있습니다.
+            if (showHistoryBtn) { 
+                 showHistoryBtn.classList.remove('hidden'); 
+            }
+
         } catch (error) {
             hideLoadingIndicator();
             console.error('에러:', error);
@@ -146,26 +295,25 @@ document.addEventListener('DOMContentLoaded', async () => {
                                  : '죄송합니다. 챗봇 응답을 가져오는 데 실패했습니다.';
             
             if (error.response && error.response.status === 401 && currentUserId === 'guest') {
-                loginModal.classList.remove('hidden'); // 팝업 창 표시
-                // appendMessage('bot', '죄송합니다. 챗봇과 대화하려면 로그인이 필요합니다. 로그인 후에 다시 시도해주세요.'); // 이 메시지 대신 팝업이 뜸
+                if (loginModal) loginModal.classList.remove('hidden');
             } else {
-                appendMessage('bot', errorMessage);
+                appendMessage('ai', errorMessage);
             }
         } finally {
-            // ★★★ 응답 완료 후 - input 다시 활성화 ★★★
             enableInput();
         }
     }
 
-    chatForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const content = userInput.value.trim();
-        if (!content) return;
+    if (chatForm) {
+        chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const content = userInput ? userInput.value.trim() : '';
+            if (!content) return;
 
-        userInput.value = ''; // 초기화
-        
-        await sendMessage(content); // sendMessage 함수에서 로그인 상태 검사 및 팝업 처리
-    });
+            if (userInput) userInput.value = '';
+            await sendMessage(content);
+        });
+    }
 
     if (logoutButton) {
         logoutButton.addEventListener('click', async (e) => {
@@ -177,15 +325,18 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (logoutResponse.ok) {
                     showMessage('👋 로그아웃되었습니다.', 'success');
                     
-                    loggedInLinks.classList.add('hidden');
-                    loggedOutLinks.classList.remove('hidden');
+                    if (loggedInLinks) loggedInLinks.classList.add('hidden');
+                    if (loggedOutLinks) loggedOutLinks.classList.remove('hidden');
                     
                     currentUserId = 'guest';
                     currentUsername = '손님';
 
-                    // 로그아웃 시 채팅 메시지 초기화 및 팝업 띄우기
-                    chatMessages.innerHTML = ''; 
-                    loginModal.classList.remove('hidden'); // 팝업 창 표시
+                    if (chatMessages) chatMessages.innerHTML = ''; 
+                    if (loginModal) loginModal.classList.remove('hidden');
+
+                    if (showHistoryBtn) {
+                        showHistoryBtn.classList.add('hidden');
+                    }
 
                 } else {
                     const errorData = await logoutResponse.json();
@@ -199,10 +350,24 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
-    // ★★★ 팝업 닫기 버튼 이벤트 리스너 (추가) ★★★
+    if (clearHistoryButton) {
+        clearHistoryButton.addEventListener('click', async (e) => {
+            e.preventDefault();
+            if (confirm('정말로 모든 채팅 기록을 삭제하시겠습니까?')) {
+                await clearChatHistory();
+            }
+        });
+    }
+    
+    if (showHistoryBtn) {
+        showHistoryBtn.addEventListener('click', async () => {
+            await loadChatHistory(true); 
+        });
+    }
+
     if (closeLoginModalButton) {
         closeLoginModalButton.addEventListener('click', () => {
-            loginModal.classList.add('hidden'); // 팝업 창 숨기기
+            if (loginModal) loginModal.classList.add('hidden');
         });
     }
 

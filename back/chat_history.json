@@ -1,0 +1,66 @@
+{
+    "1": [
+        {
+            "messageId": "6d823420-9c5c-41c1-b0c1-b65d5135498e",
+            "userId": "1",
+            "senderType": "user",
+            "content": "안녕"
+        },
+        {
+            "messageId": "cbe0a23d-8a60-41b2-abb3-fd648cfe4415",
+            "userId": "1",
+            "senderType": "ai",
+            "content": "안녕하세요! 어떻게 도와드릴까요?"
+        },
+        {
+            "messageId": "13ea35e2-2da7-4494-a65e-fbdff2df8975",
+            "userId": "1",
+            "senderType": "user",
+            "content": "그냥 대화하자"
+        },
+        {
+            "messageId": "8822fda7-9cb3-4df4-887d-dc25b321ac84",
+            "userId": "1",
+            "senderType": "ai",
+            "content": "좋아요! 어떤 주제로 이야기할까요? 관심 있는 것들이나 질문이 있다면 편하게 이야기해 주세요."
+        },
+        {
+            "messageId": "40764e8f-3e2b-464b-8c69-20a6546d2777",
+            "userId": "1",
+            "senderType": "user",
+            "content": "하하하"
+        },
+        {
+            "messageId": "acaceda5-9196-49c7-bea7-485628ed225a",
+            "userId": "1",
+            "senderType": "ai",
+            "content": "안녕하세요! 웃음이 넘치는 하루가 되셨나요? 어떻게 도와드릴까요?"
+        }
+    ],
+    "2": [
+        {
+            "messageId": "46ed35ea-527d-4731-8a09-331bb48c7c7d",
+            "userId": "2",
+            "senderType": "user",
+            "content": "내일 발표.. 오늘이 발표하는 날이야"
+        },
+        {
+            "messageId": "8835df07-d39e-4903-87ab-f261e762a171",
+            "userId": "2",
+            "senderType": "ai",
+            "content": "내일 발표를 준비하는 것이군요! 발표 자료는 다 준비되었나요? 발표 연습도 해보셨나요? 혹시 도움이 필요하면 말씀해 주세요! 발표 내용이나 팁에 대해 이야기해 드릴 수 있습니다."
+        },
+        {
+            "messageId": "99962b5a-9c1f-4094-96bf-31e3f94ca795",
+            "userId": "2",
+            "senderType": "user",
+            "content": "배가 불러"
+        },
+        {
+            "messageId": "5a39ff92-14ee-495d-a945-600a132964dd",
+            "userId": "2",
+            "senderType": "ai",
+            "content": "배가 불렀군요! 맛있는 음식을 먹었나 봐요. 소화가 잘 되기를 바라요. 혹시 배가 불러서 불편하시다면, 가벼운 산책을 해보는 것도 도움이 될 수 있어요. 어떤 음식을 드셨나요?"
+        }
+    ]
+}
