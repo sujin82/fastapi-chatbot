@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => {
                 messageBox.className = 'message-box';
             }, 300);
-        }, 3000);
+        }, 2000);
     }
 
     function appendMessage(senderType, content) {
@@ -102,6 +102,18 @@ document.addEventListener('DOMContentLoaded', async () => {
         loadingIndicator.classList.remove('opacity-100', 'visible');
     }
 
+    // ★★★ input 비활성화/활성화 함수 추가 ★★★
+    function disableInput() {
+        userInput.disabled = true;
+        userInput.placeholder = '응답을 기다리는 중...';
+    }
+
+    function enableInput() {
+        userInput.disabled = false;
+        userInput.placeholder = '메시지를 입력하세요...'; // 원래 placeholder로 복원
+        userInput.focus(); // 입력창에 포커스 설정
+    }
+
     async function sendMessage(content) {
         // ★★★ 로그인하지 않은 상태에서 대화 시도 시 팝업 띄우기 (변경) ★★★
         if (currentUserId === 'guest') {
@@ -111,6 +123,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             return; // 메시지 전송 중단
         }
 
+        // ★★★ 메시지 전송 시작 - input 비활성화 ★★★
+        disableInput();
+        
         appendMessage('user', content);
         showLoadingIndicator();
 
@@ -136,6 +151,9 @@ document.addEventListener('DOMContentLoaded', async () => {
             } else {
                 appendMessage('bot', errorMessage);
             }
+        } finally {
+            // ★★★ 응답 완료 후 - input 다시 활성화 ★★★
+            enableInput();
         }
     }
 
@@ -143,6 +161,8 @@ document.addEventListener('DOMContentLoaded', async () => {
         e.preventDefault();
         const content = userInput.value.trim();
         if (!content) return;
+
+        userInput.value = ''; // 초기화
         
         await sendMessage(content); // sendMessage 함수에서 로그인 상태 검사 및 팝업 처리
     });
