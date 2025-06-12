@@ -7,7 +7,7 @@ class UserCreate(BaseModel): # 회원가입
     username: str
     email: str
     password: str
-    nickname: Optional[str] = None
+    # nickname: Optional[str] = None
 
 class UserLogin(BaseModel): # 로그인할 때 받을 정보
     username: str
@@ -17,14 +17,14 @@ class User(BaseModel): # 실제로 저장할 사용자 정보
     id: int 
     username: str
     email: str
-    nickname: str
+    # nickname: str
     hashed_password: str # 암호화된 비밀번호
 
 class UserResponse(BaseModel): # 다른 사람에게 보여줄 사용자 정보(비밀번호 제외)
     id: int # 사용자 고유번호
     username: str
     email: str
-    nickname: str
+    # nickname: str
 
 
 
