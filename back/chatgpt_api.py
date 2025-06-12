@@ -33,21 +33,12 @@ async def ask_chatgpt_async(messages: List[ChatMessage], max_retries: int = 3) -
             "content": msg.content
         })
     
-    # --- 변경된 부분 시작 ---
-    # 프록시 서버가 'messages' 배열 자체를 최상위 페이로드로 기대하는 경우를 시도합니다.
-    # 이전에는 {"model": "...", "messages": [...]} 형태였으나,
-    # 프록시 서버의 오류 메시지가 'messages' 필드의 타입 문제임을 명확히 지적하므로
-    # 'formatted_messages' (리스트) 그 자체를 페이로드로 보냅니다.
-    # 'model' 정보가 필요하다면, 해당 프록시 API의 문서를 확인하여
-    # 'model'을 쿼리 파라미터나 다른 방식으로 전달해야 할 수 있습니다.
+
     payload_to_send = formatted_messages
-    # --- 변경된 부분 끝 ---
 
     headers = {
         "Content-Type": "application/json"
     }
-
-    print("🚀 보낼 payload:", json.dumps(payload_to_send, indent=2, ensure_ascii=False))
 
     async with httpx.AsyncClient(timeout=30.0) as client:
         for attempt in range(max_retries):
@@ -58,7 +49,6 @@ async def ask_chatgpt_async(messages: List[ChatMessage], max_retries: int = 3) -
 
                 if response.status_code == 200:
                     result = response.json()
-                    # 이 오류는 이제 발생하지 않아야 합니다. (프록시가 유효한 응답을 보내면)
                     if "choices" not in result:
                         raise Exception(f"API 응답에 choices가 없습니다: {result}")
                     
