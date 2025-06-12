@@ -4,143 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>챗봇</title>
-    <style>
-        body {
-            font-family: 'Inter', Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column; /* 헤더와 메인 컨텐츠 영역을 수직으로 배치 */
-            align-items: center;   /* 가로 중앙 정렬 */
-            min-height: 100vh;
-        }
-
-        #main-header {
-            /* 새롭게 정의된 전체 헤더 컨테이너 */
-            display: flex;
-            justify-content: space-between; /* h1과 auth-links를 양 끝에 배치 */
-            align-items: center;   /* 수직 중앙 정렬 */
-            width: 90%;
-            max-width: 600px; /* chat-container와 동일한 최대 너비 */
-            padding: 15px 20px; /* 내부 여백 추가 */
-            margin-bottom: 30px; /* 헤더 아래 간격 */
-            background-color: white; /* 배경색 */
-            border-radius: 12px; /* 둥근 모서리 */
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1); /* 그림자 */
-        }
-
-        #main-header h1 {
-            color: #333;
-            margin: 0; /* h1 기본 마진 제거 */
-            font-size: 24px; /* 제목 크기 조정 */
-        }
-
-        #auth-links {
-            /* 로그인/회원가입 링크들을 담는 div */
-            display: flex;
-            gap: 20px; /* 링크 사이 간격 */
-        }
-
-        #auth-links a {
-            text-decoration: none;
-            color: #007bff;
-            font-weight: bold;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: background-color 0.2s;
-        }
-
-        #auth-links a:hover {
-            background-color: #e0f2f7;
-        }
-
-        #main-content {
-            /* 챗봇과 (만약 추가적인 컨텐츠가 있다면) 담는 메인 컨테이너 */
-            display: flex;
-            flex-direction: row; /* 자식 요소들을 가로로 배치 */
-            justify-content: center; /* 챗봇 컨테이너를 중앙으로 */
-            align-items: flex-start; /* 상단 정렬 */
-            width: 90%;
-            max-width: 1000px; /* 전체 컨텐츠의 최대 너비 */
-            /* gap: 20px; 이전 #auth-box가 별도 요소일 때 필요했음, 이제 필요 없음 */
-        }
-
-        #chat-container {
-            /* 기존 챗봇 컨테이너 스타일 유지 및 플렉스 설정 */
-            flex-grow: 1; /* 남은 공간을 차지하도록 설정 */
-            min-width: 300px; /* 최소 너비 설정 */
-            max-width: 600px; /* 챗봇 컨테이너의 최대 너비 */
-            height: 70vh;
-            border: 1px solid #e0e0e0;
-            border-radius: 12px;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-            background-color: white;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            transition: all 0.3s ease-in-out;
-        }
-
-        #chat-messages {
-            flex-grow: 1; padding: 20px; overflow-y: auto;
-            border-bottom: 1px solid #f0f0f0;
-            background-color: #f9f9f9;
-        }
-        .message { margin-bottom: 15px; padding: 12px 18px; border-radius: 8px; max-width: 75%; }
-        .user-message { background-color: #e6f7ff; color: #333; text-align: right; margin-left: auto; border-bottom-right-radius: 2px; }
-        .bot-message { background-color: #e0f2f7; color: #333; text-align: left; margin-right: auto; border-bottom-left-radius: 2px; }
-        .message:last-child { margin-bottom: 0; }
-
-        #chat-input-area {
-            display: flex; padding: 15px; background-color: #ffffff; border-top: 1px solid #e0e0e0;
-        }
-        #user-input {
-            flex-grow: 1; padding: 12px; border: 1px solid #d0d0d0; border-radius: 8px;
-            margin-right: 10px; font-size: 16px; outline: none; transition: border-color 0.2s;
-        }
-        #user-input:focus { border-color: #007bff; }
-        #send-button {
-            padding: 12px 25px; background-color: #007bff; color: white;
-            border: none; border-radius: 8px; cursor: pointer; font-size: 16px;
-            font-weight: bold; transition: background-color 0.2s, transform 0.1s;
-        }
-        #send-button:hover { background-color: #0056b3; transform: translateY(-1px); }
-        #send-button:active { transform: translateY(0); }
-
-        /* 이전 #auth-box는 헤더 내부로 이동했으므로 삭제 */
-        /* #auth-box는 이제 필요 없음 */
-
-        /* 반응형 디자인 */
-        @media (max-width: 768px) {
-            #main-header {
-                flex-direction: column; /* 작은 화면에서는 헤더 내부 요소 수직으로 배치 */
-                gap: 15px;
-                padding: 15px; /* 패딩 조정 */
-                width: 95%; /* 작은 화면에서 너비 조정 */
-                max-width: none; /* 최대 너비 제한 해제 */
-            }
-
-            #auth-links {
-                width: 100%; /* 작은 화면에서 링크 div 너비 맞춤 */
-                justify-content: center; /* 링크들을 중앙 정렬 */
-                gap: 10px; /* 링크 사이 간격 조정 */
-            }
-
-            #main-content {
-                flex-direction: column; /* 작은 화면에서는 챗봇 수직으로 다시 배치 */
-                align-items: center; /* 챗봇 가로 중앙 정렬 */
-                gap: 30px; /* 세로 간격 조정 */
-                width: 95%; /* 작은 화면에서 너비 조정 */
-            }
-
-            #chat-container {
-                width: 100%; /* 작은 화면에서 너비 조정 */
-                height: 70vh; /* 높이 유지 */
-                max-width: none; /* 최대 너비 제한 해제 */
-            }
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <!-- 새로운 메인 헤더 -->
@@ -156,12 +20,15 @@
     <div id="main-content">
         <div id="chat-container">
             <div id="chat-messages"></div>
+            <!-- 로딩 인디케이터 추가 -->
+            <div id="loading-indicator">
+                <span class="spinner"></span> 챗봇이 응답을 준비 중입니다...
+            </div>
             <div id="chat-input-area">
                 <input type="text" id="user-input" placeholder="메시지를 입력하세요...">
                 <button id="send-button">전송</button>
             </div>
         </div>
-        <!-- 이전 로그인/회원가입 박스는 이제 헤더 내부로 이동했으므로 여기서는 제거됩니다. -->
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>

@@ -1,10 +1,9 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from typing import List, Dict
-import uuid
-
-from models import User, ChatMessage, ChatRequest, LoginResponse, LoginRequest
-from chatgpt_api import ask_chatgpt_async  # 비동기 버전 임포트
+from typing import Dict
+from auth import users_db, user_sessions # auth.py에서 users_db, user_sessions 임포트
+from models import UserCreate, UserLogin, User, UserResponse, ChatMessage, ChatRequest
+from chatgpt_api import ask_chatgpt_async # chatgpt_api.py에서 ask_chatgpt_async 함수 임포트
 
 app = FastAPI()
 
@@ -18,13 +17,11 @@ app.add_middleware(
 )
 
 # --- 메모리 내 데이터베이스 (실제 데이터베이스 대신 사용) ---
-users_db: Dict[str, User] = {}
-messages_db: Dict[str, ChatMessage] = {} # {message_id: ChatMessage 객체} 형태로 저장
-logged_in_users: set[str] = set()  # 현재 로그인된 사용자 ID를 저장하는 간단한 세션 저장소
+messages_db: Dict[str, ChatMessage] = {}
 
-# --- 엔드포인트 설계 ---
-@app.post("/register/", response_model=User, summary="회원가입")
-async def register_user(user: User):
+
+@app.post("/register/", summary="회원가입")
+async def register_user(user: UserCreate):
     """
     새로운 **사용자**를 시스템에 등록합니다.
     `userId`가 이미 존재하면 오류를 반환합니다.
@@ -35,8 +32,11 @@ async def register_user(user: User):
     print(f"새 사용자 등록: {user.userId}")
     return user
 
-@app.post("/login/", response_model=LoginResponse, summary="사용자 로그인")
-async def login(request: LoginRequest):
+@app.post("/login/", response_model=UserResponse, summary="사용자 로그인")
+async def login(request: UserLogin):
+    """
+    사용자 로그인 처리를 합니다.
+    """
     user_id = request.userId
     user_pwd = request.userPwd
     
@@ -47,61 +47,41 @@ async def login(request: LoginRequest):
     if user.userPwd != user_pwd:  # 비밀번호 검증
         raise HTTPException(status_code=401, detail="비밀번호가 일치하지 않습니다.")
         
-    logged_in_users.add(user_id)
+    user_sessions.add(user_id) # 로그인 세션에 사용자 ID 추가
     
-    return LoginResponse(message="로그인 성공", userId=user_id)
+    return UserResponse(message="로그인 성공", userId=user_id)
 
 @app.post("/chat/", response_model=ChatMessage)
 async def send_message(request: ChatRequest):
+    """
+    AI에게 메시지를 보내고 응답을 받습니다.
+    """
     user_id = request.userId or "guest"
+    user_message_content = request.content
+
+    # 사용자 메시지 생성 및 DB 저장
     user_message = ChatMessage(
         userId=user_id,
         senderType="user",
-        content=request.content
+        content=user_message_content
     )
     messages_db[user_message.messageId] = user_message
 
-    # --- 여기서부터 변경 ---
-    # ask_chatgpt_async 함수가 ChatMessage 객체 리스트를 기대하므로,
-    # ChatMessage 객체로 구성된 chat_history_for_api를 만듭니다.
-    
-    chat_history_for_api: List[ChatMessage] = []
-
-    # 1. 시스템 메시지 추가 (ChatMessage 객체로 생성)
-    # 시스템 메시지는 실제 사용자가 보낸 것은 아니지만, 대화의 맥락을 제공합니다.
-    system_intro_message = ChatMessage(
-        messageId=str(uuid.uuid4()), # 시스템 메시지용 고유 ID 생성
-        userId="system",             # 시스템 메시지를 위한 userId
-        senderType="ai",             # 시스템 메시지는 AI 역할로 간주
-        content="You are a helpful assistant."
-    )
-    chat_history_for_api.append(system_intro_message)
-
-    # 2. 현재 사용자 메시지 추가
-    chat_history_for_api.append(user_message)
-
-    # 3. (선택 사항: 이전 대화 기록 추가)
-    # 실제 챗봇에서는 `messages_db`에서 이전 대화 기록을 가져와 여기에 추가하여
-    # 챗봇이 대화의 맥락을 기억하도록 할 수 있습니다.
-    # 예:
-    # sorted_past_messages = sorted(messages_db.values(), key=lambda msg: msg.timestamp) # timestamp 필드가 ChatMessage에 추가되어야 함
-    # for msg in sorted_past_messages:
-    #     if msg.userId == user_id: # 특정 사용자의 이전 메시지만 포함
-    #         chat_history_for_api.append(msg)
-    # 현재 `messages_db`는 전체 메시지를 담고 있으므로, 필요에 따라 필터링 및 정렬 로직 추가 필요
-
+    # ask_chatgpt_async 함수 호출
     try:
-        # ChatMessage 객체 리스트를 ask_chatgpt_async 함수에 전달
-        bot_response = await ask_chatgpt_async(chat_history_for_api)
+        # chatgpt_api.py에서 ask_chatgpt_async 함수가 이제 오류 시에도 문자열을 반환하도록
+        # 수정되었으므로, 여기서 발생하는 ResponseValidationError는 해결될 것입니다.
+        bot_response_content = await ask_chatgpt_async(user_id=user_id, prompt_content=user_message_content)
     except Exception as e:
-        # 챗봇 API 호출 중 오류 발생 시 500 에러 반환
+        # ask_chatgpt_async 함수 내에서 모든 오류를 문자열로 처리하도록 했지만,
+        # 혹시 모를 다른 종류의 예외에 대비하여 try-except를 유지합니다.
         raise HTTPException(status_code=500, detail=f"챗봇 서버에서 오류가 발생했습니다: {str(e)}")
 
     # 챗봇 응답을 ChatMessage 객체로 생성하고 DB에 저장
     bot_message = ChatMessage(
         userId=user_id,
-        senderType="ai",
-        content=bot_response
+        senderType="ai", # AI의 메시지임을 나타냅니다.
+        content=bot_response_content
     )
     messages_db[bot_message.messageId] = bot_message
     return bot_message

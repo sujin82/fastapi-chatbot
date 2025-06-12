@@ -2,31 +2,42 @@ from pydantic import BaseModel, Field
 from typing import Optional, Literal
 import uuid
 
-# --- Pydantic 스키마 정의 ---
-class User(BaseModel):
-    """ 사용자 기본 정보 스키마 """
-    userId: str
-    userPwd: str
+# --- 사용자
+class UserCreate(BaseModel): # 회원가입
+    username: str
+    email: str
+    password: str
     nickname: Optional[str] = None
 
+class UserLogin(BaseModel): # 로그인할 때 받을 정보
+    username: str
+    password: str
+
+class User(BaseModel): # 실제로 저장할 사용자 정보
+    id: int 
+    username: str
+    email: str
+    nickname: str
+    hashed_password: str # 암호화된 비밀번호
+
+class UserResponse(BaseModel): # 다른 사람에게 보여줄 사용자 정보(비밀번호 제외)
+    id: int # 사용자 고유번호
+    username: str
+    email: str
+    nickname: str
+
+
+
+
+# --- 채팅
 class ChatMessage(BaseModel):
-    """ 개별 대화 메시지를 나타내는 스키마.
-    각 메시지에 사용자 ID를 직접 연결 """
     messageId: str = Field(default_factory=lambda: str(uuid.uuid4()))
     userId: str
     senderType: Literal["user", "ai"]
     content: str
     # timestamp: datetime
 
-class ChatRequest(BaseModel):
-    """ 채팅 요청 스키마 """
+
+class ChatRequest(BaseModel): # 채팅 요청
     userId: Optional[str] = None
     content: str
-
-class LoginRequest(BaseModel):
-    userId: str
-    userPwd: str
-
-class LoginResponse(BaseModel):
-    userId: str
-    message: str
