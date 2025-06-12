@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>챗봇</title>
-    <link rel="stylesheet" href="/static/style.css">
+    <link rel="stylesheet" href="/static/styles/main.css">
 </head>
 <body>
     <!-- 새로운 메인 헤더 -->
@@ -12,7 +12,7 @@
         <h1>챗봇</h1>
         <div id="auth-links">
             <a href="/login">로그인</a>
-            <a href="">회원가입</a>
+            <a href="/register">회원가입</a>
         </div>
     </header>
 
@@ -24,14 +24,16 @@
             <div id="loading-indicator">
                 <span class="spinner"></span> 챗봇이 응답을 준비 중입니다...
             </div>
-            <div id="chat-input-area">
-                <input type="text" id="user-input" placeholder="메시지를 입력하세요...">
-                <button id="send-button">전송</button>
-            </div>
+            <form id="chat-form">
+                <div id="chat-input-area">
+                    <input type="text" id="user-input" placeholder="메시지를 입력하세요" required>
+                    <button type="submit" id="send-button">전송</button>
+                </div>
+            </form>
         </div>
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/static/app.js"></script>
+    <script src="/static/scripts/main.js"></script>
 </body>
 </html>

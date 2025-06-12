@@ -23,13 +23,21 @@ app.add_middleware(
 
 messages_db: Dict[str, ChatMessage] = {}
 
+# @app.get("/")
+# async def read_root():
+#     return {"message": "Hello, FastAPI! This is a minimal test."}
+
 @app.get("/")
 async def read_index():
     return FileResponse("../front/index.html")
 
 @app.get("/login")
-async def red_login():
+async def read_login():
     return FileResponse("../front/login.html")
+
+@app.get("/register")
+async def read_register():
+    return FileResponse("../front/register.html")
 
 
 @app.post("/register", summary="회원가입")
@@ -174,6 +182,3 @@ async def send_message(request: ChatRequest):
     )
     messages_db[bot_message.messageId] = bot_message
     return bot_message
-
-
-

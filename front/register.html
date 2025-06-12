@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원가입 - 챗봇</title>
+    <link rel="stylesheet" href="/static/styles/register.css">
+</head>
+<body>
+    <!-- 메인 헤더 -->
+    <header id="main-header">
+        <h1><a href="/">챗봇</a></h1>
+        <div id="auth-links">
+            <a href="/login">로그인</a>
+        </div>
+    </header>
+
+    <!-- 회원가입 컨테이너 -->
+    <div id="main-content">
+        <div id="register-container">
+            <div id="register-header">
+                <h2>회원가입</h2>
+                <p>챗봇 서비스를 이용하기 위해 회원가입을 해주세요</p>
+            </div>
+
+            <form id="register-form">
+                <div class="form-group">
+                    <label for="username">이름</label>
+                    <input type="text" id="username" name="username" placeholder="이름을 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">이메일 주소</label>
+                    <input type="email" id="email" name="email" placeholder="example@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="password">비밀번호</label>
+                    <input type="password" id="password" name="password" placeholder="비밀번호를 입력하세요" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirm-password">비밀번호 확인</label>
+                    <input type="password" id="confirm-password" name="confirm-password" placeholder="비밀번호를 다시 입력하세요" required>
+                </div>
+
+                <button type="submit" id="register-button">회원가입</button>
+            </form>
+
+            <div id="login-link">
+                <p>이미 계정이 있으신가요? <a href="/login">로그인하기</a></p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/static/scripts/register.js"></script>
+</body>
+</html>
